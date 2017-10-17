@@ -9,13 +9,13 @@
 # $service:: Service name
 #
 class foreman::plugin::tasks(
-  $package = $foreman::plugin::tasks::params::package,
-  $service = $foreman::plugin::tasks::params::service,
+  String $package = $::foreman::plugin::tasks::params::package,
+  String $service = $::foreman::plugin::tasks::params::service,
 ) inherits foreman::plugin::tasks::params {
   foreman::plugin { 'tasks':
     package => $package,
-  } ~>
-  service { 'foreman-tasks':
+  }
+  ~> service { 'foreman-tasks':
     ensure => running,
     enable => true,
     name   => $service,

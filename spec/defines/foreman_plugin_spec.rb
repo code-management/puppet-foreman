@@ -3,16 +3,9 @@ require 'spec_helper'
 describe 'foreman::plugin' do
   let :title do 'myplugin' end
 
-  on_supported_os.each do |os, facts|
-    next if only_test_os() and not only_test_os.include?(os)
-    next if exclude_test_os() and exclude_test_os.include?(os)
-
+  on_os_under_test.each do |os, facts|
     context "on #{os}" do
-      let :facts do
-        facts.merge({
-          :concat_basedir => '/tmp',
-        })
-      end
+      let :facts do facts end
 
       let :pre_condition do
         'include foreman'
@@ -31,7 +24,7 @@ describe 'foreman::plugin' do
           when 'Debian'
             package_name = 'ruby-foreman-myplugin'
           end
-          should contain_package(package_name).with_ensure('installed')
+          should contain_package(package_name).with_ensure('present')
         end
 
         it 'should not contain the config file' do
@@ -45,7 +38,7 @@ describe 'foreman::plugin' do
         } end
 
         it 'should install the correct package' do
-          should contain_package('myplugin').with_ensure('installed')
+          should contain_package('myplugin').with_ensure('present')
         end
       end
 
@@ -61,7 +54,7 @@ describe 'foreman::plugin' do
                          when 'Debian'
                            'my-fun-plugin'
                          end
-          should contain_package(package_name).with_ensure('installed')
+          should contain_package(package_name).with_ensure('present')
         end
       end
 

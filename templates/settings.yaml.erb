@@ -8,6 +8,8 @@
 :require_ssl: <%= scope.lookupvar("foreman::ssl") %>
 :locations_enabled: <%= scope.lookupvar("foreman::locations_enabled") %>
 :organizations_enabled: <%= scope.lookupvar("foreman::organizations_enabled") %>
+:puppetrun: <%= scope.lookupvar("foreman::puppetrun") %>
+:puppetssldir: <%= scope.lookupvar("foreman::puppet_ssldir") %>
 
 # The following values are used for providing default settings during db migrate
 :oauth_active: <%= scope.lookupvar("foreman::oauth_active") %>
@@ -20,6 +22,11 @@
 :websockets_ssl_key: <%= scope.lookupvar("foreman::websockets_ssl_key") %>
 :websockets_ssl_cert: <%= scope.lookupvar("foreman::websockets_ssl_cert") %>
 
+# SSL-settings
+:ssl_certificate: <%= scope.lookupvar("foreman::client_ssl_cert") %>
+:ssl_ca_file: <%= scope.lookupvar("foreman::client_ssl_ca") %>
+:ssl_priv_key: <%= scope.lookupvar("foreman::client_ssl_key") %>
+
 # Log settings for the current environment can be adjusted by adding them
 # here. For example, if you want to increase the log level.
 :logging:
@@ -31,3 +38,6 @@
   :<%= logger %>:
     :enabled: <%= enabled %>
 <% end -%>
+
+:dynflow:
+  :pool_size: <%= scope.lookupvar("foreman::dynflow_pool_size") %>

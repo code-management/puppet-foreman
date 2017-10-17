@@ -2,16 +2,9 @@ require 'spec_helper'
 
 
 describe 'foreman::config' do
-  on_supported_os.each do |os, facts|
-    next if only_test_os() and not only_test_os.include?(os)
-    next if exclude_test_os() and exclude_test_os.include?(os)
-
+  on_os_under_test.each do |os, facts|
     context "on #{os}" do
-      let :facts do
-        facts.merge({
-          :concat_basedir => '/tmp',
-        })
-      end
+      let :facts do facts end
 
       describe 'without parameters' do
         let :pre_condition do
@@ -25,12 +18,18 @@ describe 'foreman::config' do
             with_content(/^:require_ssl:\s*true$/).
             with_content(/^:locations_enabled:\s*false$/).
             with_content(/^:organizations_enabled:\s*false$/).
+            with_content(/^:puppetrun:\s*false$/).
+            with_content(/^:puppetssldir:\s*\/var\/lib\/puppet\/ssl$/).
             with_content(/^:oauth_active:\s*true$/).
             with_content(/^:oauth_map_users:\s*false$/).
             with_content(/^:oauth_consumer_key:\s*\w+$/).
             with_content(/^:oauth_consumer_secret:\s*\w+$/).
             with_content(/^:websockets_encrypt:\s*on$/).
+            with_content(%r{^:ssl_certificate:\s*/var/lib/puppet/ssl/certs/foo\.example\.com\.pem$}).
+            with_content(%r{^:ssl_ca_file:\s*/var/lib/puppet/ssl/certs/ca.pem$}).
+            with_content(%r{^:ssl_priv_key:\s*/var/lib/puppet/ssl/private_keys/foo\.example\.com\.pem$}).
             with_content(/^:logging:\n\s*:level:\s*info$/).
+            with_content(/^:dynflow:\n\s*:pool_size:\s*5$/).
             with({})
 
           should contain_concat('/etc/foreman/settings.yaml').with({
@@ -48,6 +47,8 @@ describe 'foreman::config' do
             'content' => /adapter: postgresql/,
           })
         end
+
+        it { should_not contain_file('/etc/foreman/email.yaml') }
 
         case facts[:osfamily]
         when 'RedHat'
@@ -90,8 +91,8 @@ describe 'foreman::config' do
         it 'should contain foreman::config::passenger' do
           if facts[:osfamily] == 'RedHat' and facts[:operatingsystem] != 'Fedora'
             passenger_ruby = '/usr/bin/tfm-ruby'
-          elsif os == 'ubuntu-12-x86_64'
-            passenger_ruby = '/usr/bin/ruby1.9.1'
+          elsif facts[:osfamily] == 'Debian'
+            passenger_ruby = '/usr/bin/foreman-ruby'
           else
             passenger_ruby = nil
           end
@@ -265,6 +266,35 @@ describe 'foreman::config' do
           should contain_file('/etc/foreman/email.yaml').
             with_content(/delivery_method: :sendmail/).
             with_ensure('file')
+        end
+      end
+
+      describe 'with email configured in the database' do
+        let :pre_condition do
+          "class {'foreman':
+            email_config_method   => 'database',
+            email_delivery_method => 'sendmail',
+          }"
+        end
+
+        it { should contain_file('/etc/foreman/email.yaml').with_ensure('absent') }
+      end
+
+      if Puppet.version >= '4.0'
+        describe 'with AIO Puppet packages' do
+          let :pre_condition do
+            "class {'foreman':}"
+          end
+          let :facts do
+            facts.merge({
+              :rubysitedir => '/opt/puppetlabs/puppet/lib/ruby/site_ruby/2.1.0',
+            })
+          end
+          it 'should set up puppetssldir accordingly' do
+            should contain_concat__fragment('foreman_settings+01-header.yaml').
+                with_content(/^:puppetssldir:\s*\/etc\/puppetlabs\/puppet\/ssl$/).
+                with({})
+          end
         end
       end
     end

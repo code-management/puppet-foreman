@@ -1,5 +1,11 @@
 # Configure foreman
 class foreman::config {
+  # Ensure 'puppet' user group is present before managing foreman user
+  # Relationship is duplicated there as defined() is parse-order dependent
+  if defined(Class['puppet::server::install']) {
+    Class['puppet::server::install'] -> Class['foreman::config']
+  }
+
   concat::fragment {'foreman_settings+01-header.yaml':
     target  => '/etc/foreman/settings.yaml',
     content => template('foreman/settings.yaml.erb'),
@@ -20,12 +26,18 @@ class foreman::config {
   }
 
   if $::foreman::email_delivery_method and !empty($::foreman::email_delivery_method) {
-    file { "/etc/foreman/${foreman::email_conf}":
-      ensure  => file,
-      owner   => 'root',
-      group   => $::foreman::group,
-      mode    => '0640',
-      content => template("foreman/${foreman::email_source}"),
+    if $::foreman::email_config_method == 'file' {
+      file { "/etc/foreman/${foreman::email_conf}":
+        ensure  => file,
+        owner   => 'root',
+        group   => $::foreman::group,
+        mode    => '0640',
+        content => template("foreman/${foreman::email_source}"),
+      }
+    } else {
+      file { "/etc/foreman/${foreman::email_conf}":
+        ensure => absent,
+      }
     }
   }
 
@@ -59,7 +71,7 @@ class foreman::config {
     class { '::foreman::config::passenger': } -> anchor { 'foreman::config_end': }
 
     if $::foreman::ipa_authentication {
-      if !$::default_ipa_server or empty($::default_ipa_server) or !$::default_ipa_realm or empty($::default_ipa_realm) {
+      if !defined('$default_ipa_server') or empty($::default_ipa_server) or !defined('$default_ipa_realm') or empty($::default_ipa_realm) {
         fail("${::hostname}: The system does not seem to be IPA-enrolled")
       }
 
@@ -99,8 +111,8 @@ class foreman::config {
           && KRB5CCNAME=KEYRING:session:get-http-service-keytab /usr/sbin/ipa-getkeytab -s ${::default_ipa_server} -k ${foreman::http_keytab} -p HTTP/${::fqdn} \
           && kdestroy -c KEYRING:session:get-http-service-keytab",
         creates => $::foreman::http_keytab,
-      } ->
-      file { $::foreman::http_keytab:
+      }
+      -> file { $::foreman::http_keytab:
         ensure => file,
         owner  => apache,
         mode   => '0600',

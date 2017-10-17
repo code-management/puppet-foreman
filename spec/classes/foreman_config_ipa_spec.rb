@@ -2,16 +2,12 @@ require 'spec_helper'
 
 describe 'foreman::config' do
 
-  on_supported_os.each do |os, facts|
-    next if only_test_os() and not only_test_os.include?(os)
-    next if exclude_test_os() and exclude_test_os.include?(os)
-
+  on_os_under_test.each do |os, facts|
     if facts[:osfamily] == 'RedHat'
       context "on #{os}" do
         let(:facts) do
           facts.merge({
-            :concat_basedir => '/tmp',
-            :interfaces     => '',
+            :interfaces => '',
           })
         end
 
@@ -64,24 +60,36 @@ describe 'foreman::config' do
           end
 
           describe 'enrolled system' do
-            let :facts do
+            let :enrolled_facts do
               facts.merge({
-                :concat_basedir => '/tmp',
-                :interfaces     => '',
+                :interfaces => '',
                 :default_ipa_server => 'ipa.example.com',
                 :default_ipa_realm => 'REALM',
+                :sssd_services => 'ifp',
+                :sssd_ldap_user_extra_attrs => '',
+                :sssd_allowed_uids => '',
+                :sssd_user_attributes => '',
               })
             end
+            let(:facts) { enrolled_facts }
 
             it { should contain_exec('ipa-getkeytab') }
 
+            it 'should contain Passenger fragments' do
+              should contain_foreman__config__passenger__fragment('intercept_form_submit').
+                with_ssl_content(/^\s*InterceptFormPAMService foreman$/)
+
+              should contain_foreman__config__passenger__fragment('lookup_identity')
+
+              should contain_foreman__config__passenger__fragment('auth_kerb').
+                with_ssl_content(%r{^\s*KrbAuthRealms REALM$}).
+                with_ssl_content(%r{^\s*Krb5KeyTab /etc/httpd/conf/http.keytab$}).
+                with_ssl_content(%r{^\s*require pam-account foreman$})
+            end
+
             describe 'on non-selinux' do
               let :facts do
-                facts.merge({
-                  :concat_basedir => '/tmp',
-                  :interfaces     => '',
-                  :default_ipa_server => 'ipa.example.com',
-                  :default_ipa_realm => 'REALM',
+                enrolled_facts.merge({
                   :selinux => 'false',
                 })
               end
@@ -91,11 +99,7 @@ describe 'foreman::config' do
 
             describe 'on selinux system but disabled by user' do
               let :facts do
-                facts.merge({
-                  :concat_basedir => '/tmp',
-                  :interfaces     => '',
-                  :default_ipa_server => 'ipa.example.com',
-                  :default_ipa_realm => 'REALM',
+                enrolled_facts.merge({
                   :selinux => 'true',
                 })
               end
@@ -113,11 +117,7 @@ describe 'foreman::config' do
 
             describe 'on selinux system with enabled by user' do
               let :facts do
-                facts.merge({
-                  :concat_basedir => '/tmp',
-                  :interfaces     => '',
-                  :default_ipa_server => 'ipa.example.com',
-                  :default_ipa_realm => 'REALM',
+                enrolled_facts.merge({
                   :selinux => 'true',
                 })
               end
@@ -135,11 +135,7 @@ describe 'foreman::config' do
 
             describe 'on selinux' do
               let :facts do
-                facts.merge({
-                  :concat_basedir => '/tmp',
-                  :interfaces     => '',
-                  :default_ipa_server => 'ipa.example.com',
-                  :default_ipa_realm => 'REALM',
+                enrolled_facts.merge({
                   :selinux => 'true',
                 })
               end

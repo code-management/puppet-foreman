@@ -1,16 +1,9 @@
 require 'spec_helper'
 
 describe 'foreman::puppetmaster' do
-  on_supported_os.each do |os, facts|
-    next if only_test_os() and not only_test_os.include?(os)
-    next if exclude_test_os() and exclude_test_os.include?(os)
-
+  on_os_under_test.each do |os, facts|
     context "on #{os}" do
       let :facts do
-        facts = facts.merge({
-          :concat_basedir => '/tmp',
-        })
-
         if facts[:osfamily] == 'RedHat' and facts[:operatingsystemmajrelease] == '6'
           facts[:rubyversion] = '1.8.7'
         end
@@ -67,7 +60,7 @@ describe 'foreman::puppetmaster' do
         end
 
         it 'should install json package' do
-          should contain_package(json_package).with_ensure('installed')
+          should contain_package(json_package).with_ensure('present')
         end
 
         it 'should create puppet.yaml' do
@@ -81,6 +74,7 @@ describe 'foreman::puppetmaster' do
             with_content(%r{^:puppetdir: "#{puppet_vardir}"$}).
             with_content(/^:facts: true$/).
             with_content(/^:timeout: 60$/).
+            with_content(/^:report_timeout: 60$/).
             with({
               :mode  => '0640',
               :owner => 'root',
@@ -113,13 +107,15 @@ describe 'foreman::puppetmaster' do
     end
   end
 
-  # TODO on_supported_os?
+  # TODO on_os_under_test?
   context 'Amazon' do
     let :facts do
       {
         :operatingsystem => 'Amazon',
         :rubyversion     => '1.8.7',
         :osfamily        => 'Linux',
+        :puppetversion   => Puppet.version,
+        :rubysitedir     => '/usr/lib/ruby/site_ruby',
       }
     end
 
@@ -140,7 +136,7 @@ describe 'foreman::puppetmaster' do
       end
 
       it 'should install json package' do
-        should contain_package('rubygem-json').with_ensure('installed')
+        should contain_package('rubygem-json').with_ensure('present')
       end
     end
   end

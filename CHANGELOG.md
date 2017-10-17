@@ -1,5 +1,183 @@
 # Changelog
 
+## 8.1.0
+* Other changes and fixes:
+    * update node.rb for Puppet5 env fact
+    * use apache module classes for mod_{authnz_pam,intercept_form_submit,lookup_identity}
+
+## 8.0.0
+* Drop Puppet 3 support
+* New or changed parameters:
+    * Add `$db_root_cert` to set the root SSL certificate used to verify SSL connections to PostgreSQL
+    * Add `features` property to `foreman_smartproxy` provider to check enabled features
+* Other changes and fixes:
+    * Support login via smart card certificates
+
+## 7.2.0
+* New or changed parameters:
+    * Add `$ssl_ca_file` to foreman::cli to specify the path to the SSL CA
+      file for hammer_cli
+    * Add `$access_log_format` to foreman::config:passenger. This is passed to
+      apache::vhost to allow overriding the apache log format.
+* Other changes and fixes:
+    * Extend gzip file serving to /public/webpack
+    * Restrict gzip asset serving to known extensions
+    * Remove a possibly undefined requirement in foreman::plugin::discovery
+    * Add open_timeout to the report and external node script
+    * Add param for timeout to foreman() parser function
+    * Allow including foreman::repo standalone
+
+## 7.1.0
+* New or changed parameters:
+    * Add SSL certificate/key parameters to foreman::plugin::puppetdb
+* Other changes and fixes:
+    * Disable docroot management in apache::vhost, remove workaround
+    * Remove default values from parameter documentation
+    * Extended tests for plugin classes
+
+## 7.0.0
+* New classes to install Foreman plugins:
+    * foreman::plugin::monitoring to install monitoring plugin
+    * foreman::plugin::omaha to install Omaha plugin
+    * foreman::cli::openscap to install Hammer CLI OpenSCAP plugin
+* New or changed parameters:
+    * Add db_managed_rake parameter to allow db_manage to be false while still
+      managing DB migration/setup by default
+    * Add email_config_method parameter to support database configuration of
+      email settings with Foreman 1.14+
+    * Add version parameter to foreman::cli class to enable updates
+* Other changes and fixes:
+    * Add environment from agent node YAML to ENC fact upload
+    * Use ENC node cache when fact upload fails (GH-492)
+    * Configure foreman-tasks plugin from Azure plugin class (GH-480)
+    * Fix ordering of Apache service to happen inside foreman::service
+    * Fix ordering of Puppet CA generation to Foreman startup (#17133)
+    * Fix restarting service on config changes with db_manage disabled (GH-502)
+    * Fix incorrect FreeIPA enrollment error on enrolled host
+    * Permit extlib 1.x, tftp 2.x
+    * Move advanced parameters into new documentation section (#16250)
+    * Change parameter documentation to use Puppet 4 style typing
+    * Add default parameters for Arch Linux, for ENC support
+* Compatibility warnings:
+    * Drop support for Ruby 1.8.7
+    * If using `db_manage => false`, also set `db_managed_rake` to false if
+      managing DB migrations/seed externally
+
+## 6.0.0
+* New classes to install Foreman plugins:
+    * foreman::plugin::azure to install Azure compute resource plugin
+    * foreman::plugin::expire_hosts to install expire hosts plugin
+    * foreman::plugin::host_extra_validator to install hostname validator plugin
+* New or changed parameters:
+    * Add server_port, server_ssl_port parameters to change Apache vhost ports
+    * Rename environment parameter to rails_env to fix compatibility with data
+      bindings
+* Other changes and fixes:
+    * node.rb: skip facts upload when facts file is missing, retrieves ENC
+      output anyway
+    * node.rb: improve logging for empty facts and failed fact uploads
+    * Change reports upload to use new config_reports API
+    * Change Yum GPG key URLs to HTTPS
+    * Fix missing default parameters for strict variables compatibility,
+      requiring Puppet 3.7.5 or higher
+    * Add SVG images to automatic gzip serving list
+    * Move keepalive settings from a template to apache::vhost parameters
+    * List Fedora 24 compatibility
+* Compatibility warnings:
+    * Requires Puppet 3.6 or higher to use the module
+    * environment parameter renamed to rails_env
+    * Remove Debian 7 (Wheezy) and Ubuntu 12.04 (Precise) support
+    * Remove configure_openscap_repo parameter from `foreman::plugin::openscap`
+    * Remove rest (v1) smart proxy provider and foreman_api installation
+    * Remove `foreman::install::repos` define, use `foreman::repos`
+    * Remove `apipie_task` parameter
+
+## 5.2.2
+* Fix interpolation of IPA variables in Apache configs (#15642)
+* Fix inotify detection of new facts in node.rb watch facts
+
+## 5.2.1
+* Fix Apache config includes when VirtualHost priority is changed
+
+## 5.2.0
+* New or changed parameters:
+    * Add client_ssl_* parameters to control SSL cert used by Foreman to
+      communicate with its smart proxies (GH-441)
+    * Add puppet_ssldir parameter, supporting new AIO paths and setting the
+      `puppetssldir` value in settings.yaml
+    * Add keepalive, max_keepalive_requests and keepalive_timeout parameters,
+      defaulting to enabled for performance (#8489)
+    * Add vhost_priority parameter to control Apache vhost priority (GH-418)
+    * Add plugin_version parameter to change ensure property of plugin packages
+* Other features:
+    * Search for ENC/report configuration in Puppet AIO paths (GH-413)
+    * Support report_timeout configuration in report processor
+    * Add 'puppetmaster_fqdn' value to ENC facts upload
+    * Add foreman::providers class to install type/provider dependencies
+    * Document types/providers available in this module
+    * Add rest_v3 provider for foreman_smartproxy with minimal dependencies,
+      also supplied for AIO (#14455)
+* Other changes and fixes:
+    * Change apt repository configuration to use puppetlabs-apt 2.x (GH-428)
+    * Change configure_scl_repo to true on RHEL for 1.12 compatibility
+    * Manage ENC YAML directories, modes and ownership (GH-242)
+    * Fix inconsistencies in Yum repos versus foreman-release (GH-388)
+    * Fix nil provider error in foreman_config_entry prefetching (GH-420)
+    * Fix foreman_smartproxy idempotency for proxy names with spaces (GH-421)
+    * Fix foreman_smartproxy to only refresh when currently registered (GH-431)
+    * Fix timeout usage warning in ENC under Ruby 2.3 (GH-438)
+    * Fix ordering of Puppet server installation before Foreman user (#14942)
+    * Fix ordering of foreman::cli after repo setup
+    * Change Red Hat name in parameter docs (#14197)
+    * Note requirement for en_US.utf8 locale (GH-417)
+* Compatibility warnings:
+    * `foreman::install::repos` has been moved to `foreman::repos`.
+      The old define has been deprecated and will issue a warning.
+    * `foreman::compute::openstack` and `foreman::compute::rackspace` default
+      to Foreman 1.12 package names, pass `package => 'foreman-compute'` for
+      pre-1.12 compatibility.
+    * `rest` provider for foreman_smartproxy is deprecated, use rest_v3 or v2
+    * `foreman::plugin::openscap` has configure_openscap_repo disabled by
+      default, OS repos should now supply dependencies (#14520)
+
+## 5.1.0
+* New classes to install Foreman plugins:
+    * foreman::plugin::ansible to install Ansible support
+    * foreman::plugin::cockpit to install Cockpit support
+    * foreman::plugin::memcache to install memcache support
+* New or changed parameters:
+    * Add puppetrun parameter, allowing you to enable the
+      "Run puppet" button (and functionality) on individual host pages
+    * Add address and dashboard_address parameters to foreman::plugin::puppetdb
+    * Add ssl_certs_dir parameter to control SSLCACertificatePath, disabled by
+      default
+    * Add serveraliases parameter to manage virtual host aliases
+* Other features:
+    * Support and test with Puppet 4
+    * Add hostgroup provider and type
+    * Add filter_result parameter to foreman() search function, to filter out a
+      single or set of fields from the results
+    * Load OAuth keys in providers from /etc/foreman/settings.yaml if possible
+* Other changes and fixes:
+    * Support Puppet 3.0 minimum
+    * Support Fedora 21, add Ubuntu 16.04
+    * Use lower case FQDN to access Foreman smart proxy registration (#8389)
+    * Configure PassengerRuby to use foreman-ruby symlink on Debian/Ubuntu
+    * Fix key/value splitting in foreman_config_entry resource
+    * Fix qualified call to postgresql defined type (GH-386)
+    * Fix installation of the JSON package to use ensure_packages
+    * Fix installation of remote execution plugin to restart foreman-tasks
+* Compatibility warnings:
+    * The puppetrun setting is now managed, ensure the parameter is set to true
+      if you have already set it to true in the UI.  The default value in the
+      params class is "false", and it will override your manual setting in the
+      database.
+    * Users of the puppetdb class may need to set address/dashboard_address
+      parameters, which are now managed and default to "localhost".
+
+## 5.0.2
+* Install tasks plugin with remote_execution, chef and salt
+
 ## 5.0.1
 * Remove fail() from plugin params classes when running on FreeBSD
 * Test speed improvements

@@ -2,16 +2,9 @@ require 'spec_helper'
 
 describe 'foreman::cli' do
 
-  on_supported_os.each do |os, facts|
-    next if only_test_os() and not only_test_os.include?(os)
-    next if exclude_test_os() and exclude_test_os.include?(os)
-
+  on_os_under_test.each do |os, facts|
     context "on #{os}" do
-      let(:facts) do
-        facts.merge({
-          :concat_basedir => '/tmp',
-        })
-      end
+      let :facts do facts end
 
       context 'standalone with parameters' do
         let(:params) do {
@@ -57,6 +50,27 @@ describe 'foreman::cli' do
           it { should_not contain_file('/root/.hammer') }
           it { should_not contain_file('/root/.hammer/cli.modules.d/foreman.yml') }
         end
+
+        context 'with ssl_ca_file' do
+          let(:params) do {
+            'foreman_url' => 'http://example.com',
+            'username'    => 'joe',
+            'password'    => 'secret',
+            'ssl_ca_file' => '/etc/ca.pub',
+          } end
+
+          describe '/etc/hammer/cli.modules.d/foreman.yml' do
+            it 'should contain settings' do
+              verify_exact_contents(catalogue, '/etc/hammer/cli.modules.d/foreman.yml', [
+                ":foreman:",
+                "  :enable_module: true",
+                "  :host: 'http://example.com'",
+                ":ssl:",
+                "  :ssl_ca_file: '/etc/ca.pub'",
+              ])
+            end
+          end
+        end
       end
 
       context 'with foreman' do
@@ -65,6 +79,7 @@ describe 'foreman::cli' do
           "class { 'foreman':
              admin_username => 'joe',
              admin_password => 'secret',
+             server_ssl_ca  => '/etc/puppetlabs/puppet/ssl/certs/ca.pub',
            }"
         end
 
@@ -76,6 +91,8 @@ describe 'foreman::cli' do
               ":foreman:",
               "  :enable_module: true",
               "  :host: 'https://#{facts[:fqdn]}'",
+              ":ssl:",
+              "  :ssl_ca_file: '/etc/puppetlabs/puppet/ssl/certs/ca.pub'",
             ])
           end
         end
